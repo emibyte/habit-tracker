@@ -45,27 +45,19 @@ let justDragged = false;
 
 /** @type {Habit[]} */
 const habits = await db.getAll("habits");
-if (habits.length == 0) {
-    const medicationHabit = { id: 1, name: "medication" };
-    const hydrateHabit = { id: 2, name: "drink water" };
-    const journalHabit = { id: 3, name: "journal" };
+// if (habits.length == 0) {
+//     const medicationHabit = { id: 1, name: "medication" };
+//     const hydrateHabit = { id: 2, name: "drink water" };
+//     const journalHabit = { id: 3, name: "journal" };
 
-    await db.add("habits", medicationHabit);
-    habits.push(medicationHabit);
+//     await db.add("habits", medicationHabit);
+//     habits.push(medicationHabit);
 
-    await db.add("habits", hydrateHabit);
-    habits.push(hydrateHabit);
-    await db.add("habits", journalHabit);
-    habits.push(journalHabit);
-}
-
-/** @type {Habit[]} */
-// const habits = [
-//     { id: 1, name: "medication" },
-//     { id: 2, name: "drink water" },
-//     { id: 3, name: "stretch" },
-//     { id: 4, name: "journal" },
-// ];
+//     await db.add("habits", hydrateHabit);
+//     habits.push(hydrateHabit);
+//     await db.add("habits", journalHabit);
+//     habits.push(journalHabit);
+// }
 
 /** @type {Log[]} */
 const log = await db.getAll("logs");
@@ -199,8 +191,8 @@ function habitCardHTML(habit) {
     const emptyClass = done ? "" : " empty";
     const checkIcon = done ? "✓" : "";
     const status = done
-        ? `done at ${new Date(logEntry.timestamp).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`
-        : "not yet";
+        ? `erledigt um ${new Date(logEntry.timestamp).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`
+        : "noch nicht";
     return `
     <div class="habit-row" data-habitid="${habit.id}">
       <div class="delete-action" data-action="delete-habit">x</div>
