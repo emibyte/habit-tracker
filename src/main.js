@@ -110,7 +110,7 @@ render();
 async function onClickCheckMark(event) {
     if (event.target?.dataset.action == "delete-habit") {
         const row = event.target.closest(".habit-row");
-        const id = row.dataset.habitid;
+        const id = Number(row.dataset.habitId);
         await db.delete("habits", id);
         const idx = habits.findIndex((h) => h.id == id);
         habits.splice(idx, 1);
@@ -194,7 +194,7 @@ function habitCardHTML(habit) {
         ? `erledigt um ${new Date(logEntry.timestamp).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`
         : "noch nicht";
     return `
-    <div class="habit-row" data-habitid="${habit.id}">
+    <div class="habit-row" data-habit-id="${habit.id}">
       <div class="delete-action" data-action="delete-habit">x</div>
       <div class="habit-card${emptyClass}" data-id="${habit.id}">
         <div class="check">${checkIcon}</div>
