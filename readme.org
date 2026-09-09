@@ -1,2 +1,43 @@
+#+TITLE: habit-tracker
+#+OPTIONS: toc:nil num:nil
+
 * What is this
 its a small habit-tracker that i made as a birthday gift for someone very dear to me
+
+* Stack
+- Vite + vanilla JS
+- [[https://github.com/jakearchibald/idb][idb]] - thing promise wrapper over indexedDB
+- [[https://github.com/vite-pwa/vite-plugin-pwa][vite-plugin-pwa]] - manifest + service worker gen
+- Nix flake dev shell (only node, pkgs are installed via node)
+
+* Getting started
+** Debug build
+#+begin_src sh
+  nix develop
+  npm install
+  npm run dev
+#+end_src
+
+** Prod build
+
+#+begin_src 
+  npm run build
+  npm run preview
+#+end_src
+
+* Data model
+- ~habits~ :: ~{ id, name }~
+- ~logs~   :: ~{ id, habitId, timestamp }~ - one row per completion of habit
+
+A *habit* is done on day X if a *log* entry exists with a timestamp belonging to that day that references that *habit* via ~habitId~. Unmarking a habit delets that *log* entry entirely rather than flagging it as non-existing.
+
+Deleting a *habit* only removes it from the ~habits~ store. The past history belonging to that (its *log* entries) stay. This is intentional so that the history doesnt get falsified and activity over time can be tracked, even if the habits change/ stop existing.
+
+* Code structure notes
+- Everything runs over a single render function that completely rebuilds the entire UI upon calling it.
+- State right now is just handled via some global mutable and immutable variables (this will change).
+- Click handling is mostly handled via a central click listener on ~#app~, which branches on data-* attributes to get the necessary context.
+- Swipe to delete uses pointer events rather than touch specific events, so the same code can handle mouse-drag (on a PC) and touch (on a phone) uniformly.
+
+* Deployment
+Hosted on Github Pages via Github Actions (~.github/workflows/deploy.yml~), building on every push to the ~main~. Github Pages serves from ~/habit-tracker/~, not the domain root, the vite config sets ~base: "/habit-tracker/"~ accordingly. If the repo is ever renamed this needs to change to match.
