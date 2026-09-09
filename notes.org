@@ -1,5 +1,5 @@
 * Todos
-- [ ] being able to see what u did on past day (clicking on heatmap)
-- [ ] maybe being able to retroactively mark things on a past day as done (also via clicking on the heatmap?)
+- [X] being able to see what u did on past day (clicking on heatmap)
+- [X] maybe being able to retroactively mark things on a past day as done (also via clicking on the heatmap?)
 * Example (idk what im doing)
  https://github.com/mdn/dom-examples/blob/main/to-do-notifications/scripts/todo.js
