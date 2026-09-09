@@ -36,33 +36,25 @@ let db = await openDB(dbName, 1, {
         logStore.createIndex("timestamp", "timestamp");
     },
 });
+
+// State (ye i know this isnt good)
+const heatmapDetailHeaderDateDisplayOptions = {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+};
 const last14Days = getLast14Days();
 let isAddingHabit = false;
 let dragStartX;
 let draggingHabitId = null;
 let revealedHabitId = null;
 let justDragged = false;
+let selectedHeatmapDate = null;
 
 /** @type {Habit[]} */
 const habits = await db.getAll("habits");
-// if (habits.length == 0) {
-//     const medicationHabit = { id: 1, name: "medication" };
-//     const hydrateHabit = { id: 2, name: "drink water" };
-//     const journalHabit = { id: 3, name: "journal" };
-
-//     await db.add("habits", medicationHabit);
-//     habits.push(medicationHabit);
-
-//     await db.add("habits", hydrateHabit);
-//     habits.push(hydrateHabit);
-//     await db.add("habits", journalHabit);
-//     habits.push(journalHabit);
-// }
-
 /** @type {Log[]} */
 const log = await db.getAll("logs");
-/** @type {Log[]} */
-// const log = [];
 
 const app = document.getElementById("app");
 app.onclick = onClickCheckMark;
@@ -101,13 +93,31 @@ document.onpointerup = function (event) {
     draggingHabitId = null;
 };
 document.onclick = function (event) {
-    if (event.target.closest(".habit-card--ghost") == null && isAddingHabit) {
+    if (event.target.closest(".habit-card--ghost") === null && isAddingHabit) {
         isAddingHabit = false;
+    }
+    if (
+        event.target.closest(".heatmap-container") === null &&
+        event.target.closest(".heatmap-detail") === null &&
+        selectedHeatmapDate !== null
+    ) {
+        selectedHeatmapDate = null;
+        render();
     }
 };
 render();
 
 async function onClickCheckMark(event) {
+    if (event.target?.dataset.date !== undefined) {
+        const clickedDate = new Date(event.target?.dataset.date);
+        const alreadySelected =
+            selectedHeatmapDate !== null &&
+            clickedDate.toDateString() === selectedHeatmapDate.toDateString();
+
+        selectedHeatmapDate = alreadySelected ? null : clickedDate;
+        render();
+        return;
+    }
     if (event.target?.dataset.action == "delete-habit") {
         const row = event.target.closest(".habit-row");
         const id = Number(row.dataset.habitId);
@@ -138,7 +148,7 @@ async function onClickCheckMark(event) {
         return;
     }
 
-    if (event.target.closest(".habit-card").dataset.ghost == "true") {
+    if (event.target.closest(".habit-card")?.dataset.ghost === "true") {
         isAddingHabit = true;
         return;
     }
@@ -153,10 +163,15 @@ async function onClickCheckMark(event) {
     }
 
     const id = event.target.closest(".habit-card").dataset.id;
+    let logDate = new Date().toDateString();
+    let settingPastLog = false;
+    if (event.target.closest(".habit-card")?.dataset.past === "true") {
+        logDate = new Date(selectedHeatmapDate).toDateString();
+        settingPastLog = true;
+    }
     const entryLog = log.find(
         (l) =>
-            l.habitId == id &&
-            new Date(l.timestamp).toDateString() == new Date().toDateString(),
+            l.habitId == id && new Date(l.timestamp).toDateString() == logDate,
     );
     if (entryLog !== undefined) {
         await db.delete("logs", entryLog.id);
@@ -164,7 +179,7 @@ async function onClickCheckMark(event) {
         const index = log.indexOf(entryLog);
         log.splice(index, 1);
     } else {
-        const timestamp = Date.now();
+        const timestamp = settingPastLog ? selectedHeatmapDate : Date.now();
         const habitLog = {
             habitId: id,
             timestamp: timestamp,
@@ -207,6 +222,49 @@ function habitCardHTML(habit) {
 `;
 }
 
+function retrospectViewHTML() {
+    if (!shouldRenderRetrospect()) return "";
+    return `
+    <div class="heatmap-detail">
+        <div class="heatmap-detail-header">
+            <div class="heatmap-date">
+                ${selectedHeatmapDate.toLocaleDateString("de-DE", heatmapDetailHeaderDateDisplayOptions)}
+            </div>
+            <div class="heatmap-label">Rückblick</div>
+        </div>
+        <div class="habit-list">
+            ${habits.map(retrospectHabitCardHTML).join("")}
+        </div>
+    </div>
+    `;
+}
+
+/**
+ * @param {Habit} habit
+ */
+function retrospectHabitCardHTML(habit) {
+    // NOTE(emi): we know selectedHeatmapDate cant be null here (check in calling function, still gonna assert for now just in case)
+    console.assert(selectedHeatmapDate !== null);
+    const logEntry = wasDoneOn(selectedHeatmapDate, habit.id);
+    const wasDone = logEntry !== undefined;
+    const emptyClass = wasDone ? "" : "--ghost";
+    const checkIcon = wasDone ? "✓" : "";
+    const status = wasDone
+        ? `erledigt am ${new Date(logEntry.timestamp).toLocaleDateString("de-DE", { weekday: "short", year: "numeric", month: "long", day: "numeric" })}`
+        : "nicht erledigt";
+    return `
+    <div class="habit-row" data-habit-id="${habit.id}">
+      <div class="habit-card habit-card${emptyClass}" data-id="${habit.id}" data-past="true">
+        <div class="check">${checkIcon}</div>
+        <div class="habit-info">
+          <div class="name">${habit.name}</div>
+          <div class="status">${status}</div>
+        </div>
+      </div>
+    </div>
+`;
+}
+
 function ghostHabitCardHTML() {
     return `
     <div class="habit-card habit-card--ghost" data-ghost="true">
@@ -219,18 +277,30 @@ function ghostHabitCardHTML() {
 `;
 }
 
+/**
+ * @param {Date} date
+ */
 function heatmapUnitHTML(date) {
+    const isSelectedButNotToday =
+        selectedHeatmapDate !== null &&
+        date.toDateString() === selectedHeatmapDate.toDateString() &&
+        selectedHeatmapDate.toDateString() !== new Date().toDateString();
+    const selectedClass = isSelectedButNotToday ? "heatmap-unit--selected" : "";
     const ratio = completionRatioOn(date);
+    const isoDateString = date.toISOString(); // NOTE(emi): we can new Date(...) this back into a date later
     return `
-    <div style="--intensity: ${ratio}">
+    <div class="${selectedClass}" style="--intensity: ${ratio}" data-date="${isoDateString}">
     </div>
 `;
 }
 
 function heatmapHTML() {
     return `
-    <div class="heatmap-container">
-        ${last14Days.map(heatmapUnitHTML).reverse().join("")}
+    <div>
+        <div class="heatmap-text">Die letzten 14 Tage - tappe eine Kachel für einen Rückblick</div>
+        <div class="heatmap-container">
+            ${last14Days.map(heatmapUnitHTML).reverse().join("")}
+        </div>
     </div>
 `;
 }
@@ -264,6 +334,32 @@ function completionRatioOn(date) {
     return doneTotal / habits.length;
 }
 
+/**
+ * @param {Date} date
+ * @param {number} habitId
+ * @returns {Log | undefined}
+ */
+function wasDoneOn(date, habitId) {
+    const day = date.toDateString();
+    return log.find(
+        (l) =>
+            new Date(l.timestamp).toDateString() === day &&
+            l.habitId == habitId,
+    );
+}
+
+/**
+ * Only render retrospect on click if theres habits, a date was selected and the selected day isnt today
+ * @returns {boolean} should retrospect be rendered?
+ */
+function shouldRenderRetrospect() {
+    const anyHabits = habits.length !== 0;
+    const dateSelected = selectedHeatmapDate !== null;
+    const notToday =
+        selectedHeatmapDate?.toDateString() !== new Date().toDateString();
+    return anyHabits && dateSelected && notToday;
+}
+
 function render() {
     const today = new Date().toDateString();
     const doneCount = log.filter(
@@ -279,5 +375,6 @@ function render() {
       ${ghostHabitCardHTML()}
     </div>
     ${heatmapHTML()}
+    ${retrospectViewHTML()}
 `;
 }

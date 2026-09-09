@@ -9,6 +9,10 @@
     --text: #e8e2f0;
     --text-muted: #9c8fb5;
     --text-faint: #786a90;
+    --border-secondary: #6a5680;
+    --heatmap-date: #c9bfd9;
+    --delete-action-bg: #7a2d3a;
+    --delete-action-fg: #e8e2f0;
 }
 
 * {
@@ -107,7 +111,7 @@ body {
 
 .habit-card--ghost .check {
     background: transparent;
-    border: 1.5px dashed #6a5680;
+    border: 1.5px dashed var(--border-secondary);
     color: #8a76a0;
 }
 
@@ -158,6 +162,13 @@ body {
     grid-template-columns: repeat(14, 1fr);
 }
 
+.heatmap-text {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-left: 4px;
+    margin-top: 12px;
+}
+
 .heatmap-container > div {
     background-color: color-mix(
         in srgb,
@@ -171,6 +182,39 @@ body {
     border: 0.5px solid var(--border);
     border-radius: 8px;
     /* opacity: var(--intensity); */
+}
+
+.heatmap-unit--selected {
+    box-shadow: 0 0 0 2px #b79cd6;
+}
+
+.heatmap-detail {
+    margin-top: 12px;
+    border: 1px solid var(--border-secondary);
+    border-radius: 16px;
+    background: #1e1628;
+    padding: 14px 16px;
+    box-shadow: 0 0 16px rgba(122, 86, 160, 0.15);
+}
+
+.heatmap-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.heatmap-date {
+    font-size: 13px;
+    color: var(--heatmap-date);
+    font-weight: 500;
+}
+
+.heatmap-label {
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .habit-row {
@@ -189,7 +233,7 @@ body {
     align-items: center;
     justify-content: right;
     padding: 10px;
-    color: #e8e2f0;
-    background: #7a2d3a;
+    color: var(--delete-action-fg);
+    background: var(--delete-action-bg);
     border-radius: 16px;
 }
